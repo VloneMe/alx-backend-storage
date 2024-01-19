@@ -1,20 +1,16 @@
--- This create the stored procedure ComputeAverageWeightedScoreForUser
+-- This create the stored procedure 
+-- ComputeAverageWeightedScoreForUser
 DELIMITER //
-CREATE PROCEDURE ComputeAverageWeightedScoreForUser(
-    IN in_user_id INT
-)
+DROP PROCEDURE IF EXISTS ComputeAverageWeightedScoreForUser;
+CREATE PROCEDURE ComputeAverageWeightedScoreForUser (IN user_id INT)
 BEGIN
-    DECLARE avg_weighted_score DECIMAL(10, 2);
-
-    -- Compute the average weighted score for the specified user
-    SELECT AVG(score * weight) INTO avg_weighted_score
-    FROM weighted_scores
-    WHERE user_id = in_user_id;
-
-    -- Update or insert the average weighted score for the user
-    INSERT INTO average_weighted_scores (user_id, avg_weighted_score)
-    VALUES (in_user_id, avg_weighted_score)
-    ON DUPLICATE KEY UPDATE avg_weighted_score = avg_weighted_score;
-END;
+	UPDATE users SET average_score = (SELECT
+	SUM(corrections.score * projects.weight) / SUM(projects.weight)
+	FROM corrections
+	INNER JOIN projects
+	ON projects.id = corrections.project_id
+	WHERE corrections.user_id = user_id)
+	WHERE users.id = user_id;
+END 
 //
 DELIMITER ;
