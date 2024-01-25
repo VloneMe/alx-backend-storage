@@ -11,10 +11,11 @@ from uuid import uuid4
 from functools import wraps
 from typing import Any, Callable, Optional, Union
 
+
 def count_calls(method: Callable) -> Callable:
     """
     The decorator for Cache class methods to track call count.
-    
+
     Args:
         method (Callable): The method to be decorated.
 
@@ -26,7 +27,7 @@ def count_calls(method: Callable) -> Callable:
         """
         This wraps called method and adds its call
         count to Redis before execution.
-        
+
         Args:
             self (Any): The instance of the Cache class.
             *args: Variable arguments.
@@ -39,11 +40,12 @@ def count_calls(method: Callable) -> Callable:
         return method(self, *args, **kwargs)
     return wrapper
 
+
 def call_history(method: Callable) -> Callable:
     """
     This decorator for Cache class method to
     track arguments and outputs.
-    
+
     Args:
         method (Callable): The method to be decorated.
 
@@ -55,7 +57,7 @@ def call_history(method: Callable) -> Callable:
         """
         This wraps called method and tracks its passed arguments
         by storing them in Redis.
-        
+
         Args:
             self (Any): The instance of the Cache class.
             *args: Variable arguments.
@@ -69,24 +71,28 @@ def call_history(method: Callable) -> Callable:
         return output
     return wrapper
 
+
 def replay(fn: Callable) -> None:
     """
     This check Redis for how many times a function
     was called and display:
         - How many times it was called
         - Function args and output for each call
-        
+
     Args:
         fn (Callable): The function to be checked.
     """
     client = redis.Redis()
     calls = client.get(fn.__qualname__).decode('utf-8')
-    inputs = [input.decode('utf-8') for input in client.lrange(f'{fn.__qualname__}:inputs', 0, -1)]
-    outputs = [output.decode('utf-8') for output in client.lrange(f'{fn.__qualname__}:outputs', 0, -1)]
-    
+    inputs = [input.decode('utf-8') for input in
+              client.lrange(f'{fn.__qualname__}:inputs', 0, -1)]
+    outputs = [output.decode('utf-8') for output in
+               client.lrange(f'{fn.__qualname__}:outputs', 0, -1)]
+
     print(f'{fn.__qualname__} was called {calls} times:')
     for input, output in zip(inputs, outputs):
         print(f'{fn.__qualname__}(*{input}) -> {output}')
+
 
 class Cache:
     """
@@ -104,7 +110,7 @@ class Cache:
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         This stores data in Redis with a randomly generated key.
-        
+
         Args:
             data (Union[str, bytes, int, float]): The data to be stored.
 
@@ -120,7 +126,7 @@ class Cache:
         """
         Gets key's value from Redis and converts
         the result byte into the correct data type.
-        
+
         Args:
             key (str): The key under which the data is stored.
             fn (Optional[Callable]): A callable function
@@ -131,23 +137,23 @@ class Cache:
         """
         client = self._redis
         value = client.get(key)
-        
+
         if not value:
             return
-        
+
         if fn is int:
             return self.get_int(value)
         if fn is str:
             return self.get_str(value)
         if callable(fn):
             return fn(value)
-        
+
         return value
 
     def get_str(self, data: bytes) -> str:
         """
         This converts bytes to a string.
-        
+
         Args:
             data (bytes): The data in bytes.
 
@@ -159,7 +165,7 @@ class Cache:
     def get_int(self, data: bytes) -> int:
         """
         This converts bytes to integers.
-        
+
         Args:
             data (bytes): The data in bytes.
 
