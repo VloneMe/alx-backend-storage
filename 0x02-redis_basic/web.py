@@ -54,3 +54,17 @@ def get_page(url: str) -> str:
     """
     response = requests.get(url)
     return response.text
+
+# Example Usage:
+if __name__ == "__main__":
+    # Example URL (use http://slowwly.robertomurray.co.uk to simulate a slow response)
+    example_url = "http://slowwly.robertomurray.co.uk/delay/5000/url/https://www.example.com"
+    
+    # Access the URL multiple times
+    for _ in range(3):
+        page_content = get_page(example_url)
+        print(f"Accessed URL. Content length: {len(page_content)}")
+
+    # Print usage count for the URL
+    usage_count = redis.Redis().get(f'count:{example_url}')
+    print(f"Usage count for the URL: {int(usage_count)}")
