@@ -1,38 +1,56 @@
-#!/usr/bin/env python3
-'''A module with tools for request caching and tracking.
-'''
+# web.py
+
 import redis
 import requests
 from functools import wraps
 from typing import Callable
 
+def cache_and_track_page(fn: Callable) -> Callable:
+    """
+    Decorator for handling HTTP requests with caching and tracking.
 
-redis_store = redis.Redis()
-'''The module-level Redis instance.
-'''
+    Args:
+        fn (Callable): The function to be decorated.
 
+    Returns:
+        Callable: The decorated function.
+    """
+    @wraps(fn)
+    def wrapper(url: str) -> str:
+        """
+        Wrapper function that:
+        - checks whether a URL's data is cached
+        - tracks the usage count of the decorated function
 
-def data_cacher(method: Callable) -> Callable:
-    '''Caches the output of fetched data.
-    '''
-    @wraps(method)
-    def invoker(url) -> str:
-        '''The wrapper function for caching the output.
-        '''
-        redis_store.incr(f'count:{url}')
-        result = redis_store.get(f'result:{url}')
-        if result:
-            return result.decode('utf-8')
-        result = method(url)
-        redis_store.set(f'count:{url}', 0)
-        redis_store.setex(f'result:{url}', 10, result)
-        return result
-    return invoker
+        Args:
+            url (str): The URL to be accessed.
 
+        Returns:
+            str: The content of the URL.
+        """
+        redis_client = redis.Redis()
+        redis_client.incr(f'count:{url}')
+        cached_data = redis_client.get(f'cached_data:{url}')
+        
+        if cached_data:
+            return cached_data.decode('utf-8')
 
-@data_cacher
+        response = fn(url)
+        redis_client.setex(f'cached_data:{url}', 10, response)
+        return response
+
+    return wrapper
+
+@cache_and_track_page
 def get_page(url: str) -> str:
-    '''Returns the content of a URL after caching the request's response,
-    and tracking the request.
-    '''
-    return requests.get(url).text
+    """
+    Makes an HTTP request to a given URL.
+
+    Args:
+        url (str): The URL to be accessed.
+
+    Returns:
+        str: The content of the URL.
+    """
+    response = requests.get(url)
+    return response.text
