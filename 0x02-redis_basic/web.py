@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""
-Caching and tracking module for requests.
-"""
 
+"""
+Caching and tracking module for HTTP requests.
+"""
 import redis
 import requests
 from functools import wraps
 from typing import Callable
 
+
 def cache_and_track_request(fn: Callable) -> Callable:
     """
-    Decorator for fetching content with caching and tracking.
+    Decorator for handling HTTP requests with caching and tracking.
 
     Args:
         fn (Callable): The function to be decorated.
@@ -19,53 +20,41 @@ def cache_and_track_request(fn: Callable) -> Callable:
         Callable: The decorated function.
     """
     @wraps(fn)
-    def wrapper(endpoint: str) -> str:
+    def wrapper(url: str) -> str:
         """
-        Wrapper function to check cache and track usage count.
+        Wrapper function that:
+        - checks whether a URL's data is cached
+        - tracks the usage count of the decorated function
 
         Args:
-            endpoint (str): The endpoint to be accessed.
+            url (str): The URL to be accessed.
 
         Returns:
-            str: The content fetched from the endpoint.
+            str: The content of the URL.
         """
         redis_client = redis.Redis()
-        redis_client.incr(f'request_count:{endpoint}')
-        cached_content = redis_client.get(f'cached_content:{endpoint}')
+        redis_client.incr(f'usage_count:{url}')
+        cached_data = redis_client.get(f'cached_data:{url}')
         
-        if cached_content:
-            return cached_content.decode('utf-8')
+        if cached_data:
+            return cached_data.decode('utf-8')
 
-        response = fn(endpoint)
-        redis_client.setex(f'cached_content:{endpoint}', 10, response)
+        response = fn(url)
+        redis_client.setex(f'cached_data:{url}', 10, response)
         return response
 
     return wrapper
 
 @cache_and_track_request
-def fetch_content(endpoint: str) -> str:
+def fetch_url_data(url: str) -> str:
     """
-    Makes an HTTP request to the specified endpoint.
+    Makes an HTTP request to a given URL.
 
     Args:
-        endpoint (str): The endpoint to be accessed.
+        url (str): The URL to be accessed.
 
     Returns:
-        str: The content fetched from the endpoint.
+        str: The content of the URL.
     """
-    response = requests.get(endpoint)
+    response = requests.get(url)
     return response.text
-
-# Example Usage:
-if __name__ == "__main__":
-    # Example Endpoint
-    example_endpoint = "https://www.example.com"
-    
-    # Access the endpoint multiple times
-    for _ in range(3):
-        content = fetch_content(example_endpoint)
-        print(f"Fetched content from endpoint. Length: {len(content)}")
-
-    # Print request count for the endpoint
-    request_count = redis_client.get(f'request_count:{example_endpoint}')
-    print(f"Request count for the endpoint: {int(request_count)}")
