@@ -59,13 +59,60 @@ class Cache:
         self._redis.set(key, data)
         return key
 
+    def get(self, key: str, fn: Callable = None) -> Union[str, bytes, int, float, None]:
+        """
+        Retrieve data from Redis using the provided key and optional conversion function.
+
+        Args:
+            key (str): The key under which the data is stored.
+            fn (Callable, optional): A callable function to convert the retrieved data.
+
+        Returns:
+            Union[str, bytes, int, float, None]: The retrieved data, or None if the key does not exist.
+        """
+        data = self._redis.get(key)
+        if data is not None and fn is not None:
+            return fn(data)
+        return data
+
+    def get_str(self, key: str) -> Union[str, None]:
+        """
+        Retrieve a string from Redis using the provided key.
+
+        Args:
+            key (str): The key under which the string is stored.
+
+        Returns:
+            Union[str, None]: The retrieved string, or None if the key does not exist.
+        """
+        return self.get(key, fn=lambda x: x.decode("utf-8"))
+
+    def get_int(self, key: str) -> Union[int, None]:
+        """
+        Retrieve an integer from Redis using the provided key.
+
+        Args:
+            key (str): The key under which the integer is stored.
+
+        Returns:
+            Union[int, None]: The retrieved integer, or None if the key does not exist.
+        """
+        return self.get(key, fn=int)
+
 # Example Usage:
 if __name__ == "__main__":
     cache_instance = Cache()
 
-    # Call store method multiple times
-    for _ in range(5):
-        cache_instance.store("Test Data")
+    # Store data
+    key_str = cache_instance.store("Hello, World!")
+    key_int = cache_instance.store(42)
+
+    # Retrieve data with automatic conversion
+    retrieved_str = cache_instance.get_str(key_str)
+    retrieved_int = cache_instance.get_int(key_int)
+
+    print(f"Retrieved String: {retrieved_str}")
+    print(f"Retrieved Integer: {retrieved_int}")
 
     # Retrieve and print the count for the store method
     store_method_count = cache_instance._redis.get("Cache.store")
