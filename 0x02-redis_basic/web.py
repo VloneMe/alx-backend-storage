@@ -1,84 +1,38 @@
 #!/usr/bin/env python3
-
-import requests
+'''A module with tools for request caching and tracking.
+'''
 import redis
+import requests
 from functools import wraps
 from typing import Callable
 
-# Initialize Redis client
-redis_client = redis.StrictRedis()
+redis_instance = redis.Redis()
+'''The module-level Redis instance.
+'''
 
-def count_access(func: Callable) -> Callable:
-    """
-    Decorator to track the number of times a URL is accessed.
-    
-    Args:
-        func (Callable): The function to be decorated.
-
-    Returns:
-        Callable: The decorated function.
-    """
-    @wraps(func)
+def cached_data(method: Callable) -> Callable:
+    '''Caches the fetched data and tracks access count.
+    '''
+    @wraps(method)
     def wrapper(url: str) -> str:
-        """
-        Wraps the original function and increments the access count for the URL.
+        '''Wrapper function for caching the data.
+        '''
+        redis_instance.incr(f'access_count:{url}')
+        cached_result = redis_instance.get(f'cached_result:{url}')
         
-        Args:
-            url (str): The URL to be accessed.
-
-        Returns:
-            str: The HTML content of the URL.
-        """
-        # Increment access count for the URL
-        redis_client.incr(f"count:{url}")
-        return func(url)
+        if cached_result:
+            return cached_result.decode('utf-8')
+        
+        result = method(url)
+        
+        redis_instance.set(f'access_count:{url}', 0)
+        redis_instance.setex(f'cached_result:{url}', 10, result)
+        
+        return result
     return wrapper
 
-def cache_result(timeout: int) -> Callable:
-    """
-    Decorator to cache the result of a function with a specified timeout.
-    
-    Args:
-        timeout (int): The expiration time for the cache in seconds.
-
-    Returns:
-        Callable: The decorated function.
-    """
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(url: str) -> str:
-            """
-            Wraps the original function and caches the result with the specified timeout.
-            
-            Args:
-                url (str): The URL to be accessed.
-
-            Returns:
-                str: The HTML content of the URL.
-            """
-            cache_key = f"cache:{url}"
-            cached_result = redis_client.get(cache_key)
-
-            if cached_result is not None:
-                return cached_result.decode('utf-8')
-            
-            result = func(url)
-            redis_client.setex(cache_key, timeout, result)
-            return result
-        return wrapper
-    return decorator
-
-@count_access
-@cache_result(timeout=10)
-def get_page(url: str) -> str:
-    """
-    Obtain the HTML content of a particular URL.
-    
-    Args:
-        url (str): The URL to be accessed.
-
-    Returns:
-        str: The HTML content of the URL.
-    """
-    response = requests.get(url)
-    return response.text
+@cached_data
+def fetch_page_content(url: str) -> str:
+    '''Fetches the content of a URL, caches the response, and tracks the request.
+    '''
+    return requests.get(url).text
