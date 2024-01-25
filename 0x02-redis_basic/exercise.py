@@ -2,31 +2,30 @@
 """
 Cache module.
 
-This module defines a Cache class that utilizes
-a Redis client to store data.
+This module defines a Cache class that utilizes a Redis client to store and retrieve data.
 """
 
 import redis
 import uuid
-from typing import Union
+from typing import Union, Callable
 
 class Cache:
     """
-    This cache class for storing data in Redis.
+    Cache class for storing and retrieving data in/from Redis.
     """
 
     def __init__(self) -> None:
         """
-        This cache class constructor.
+        Cache class constructor.
 
-        This initializes a Redis client and flushes the Redis database.
+        Initializes a Redis client and flushes the Redis database.
         """
         self._redis = redis.Redis()
         self._redis.flushdb()
 
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
-        This store data in Redis and return the generated key.
+        Store data in Redis and return the generated key.
 
         Args:
             data (Union[str, bytes, int, float]): The data to be stored.
@@ -38,22 +37,57 @@ class Cache:
         self._redis.set(key, data)
         return key
 
-"""# Example Usage: """
+    def get(self, key: str, fn: Callable = None) -> Union[str, bytes, int, float, None]:
+        """
+        Retrieve data from Redis using the provided key and optional conversion function.
+
+        Args:
+            key (str): The key under which the data is stored.
+            fn (Callable, optional): A callable function to convert the retrieved data.
+
+        Returns:
+            Union[str, bytes, int, float, None]: The retrieved data, or None if the key does not exist.
+        """
+        data = self._redis.get(key)
+        if data is not None and fn is not None:
+            return fn(data)
+        return data
+
+    def get_str(self, key: str) -> Union[str, None]:
+        """
+        Retrieve a string from Redis using the provided key.
+
+        Args:
+            key (str): The key under which the string is stored.
+
+        Returns:
+            Union[str, None]: The retrieved string, or None if the key does not exist.
+        """
+        return self.get(key, fn=lambda x: x.decode("utf-8"))
+
+    def get_int(self, key: str) -> Union[int, None]:
+        """
+        Retrieve an integer from Redis using the provided key.
+
+        Args:
+            key (str): The key under which the integer is stored.
+
+        Returns:
+            Union[int, None]: The retrieved integer, or None if the key does not exist.
+        """
+        return self.get(key, fn=int)
+
+# Example Usage:
 if __name__ == "__main__":
     cache_instance = Cache()
 
-    """# Store a string """
-    string_key = cache_instance.store("Hello, World!")
-    print(f"String Key: {string_key}")
+    # Store data
+    key_str = cache_instance.store("Hello, World!")
+    key_int = cache_instance.store(42)
 
-    """# Store an integer """
-    int_key = cache_instance.store(42)
-    print(f"Integer Key: {int_key}")
+    # Retrieve data with automatic conversion
+    retrieved_str = cache_instance.get_str(key_str)
+    retrieved_int = cache_instance.get_int(key_int)
 
-    """# Store a float """
-    float_key = cache_instance.store(3.14)
-    print(f"Float Key: {float_key}")
-
-    """# Store bytes """
-    bytes_key = cache_instance.store(b"Binary Data")
-    print(f"Bytes Key: {bytes_key}")
+    print(f"Retrieved String: {retrieved_str}")
+    print(f"Retrieved Integer: {retrieved_int}")
