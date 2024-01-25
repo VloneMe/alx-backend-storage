@@ -2,7 +2,8 @@
 """
 Cache module.
 
-This module defines a Cache class that utilizes a Redis client to store data.
+This module defines a Cache class that utilizes
+a Redis client to store data.
 """
 
 import redis
@@ -11,21 +12,21 @@ from typing import Union
 
 class Cache:
     """
-    Cache class for storing data in Redis.
+    This cache class for storing data in Redis.
     """
 
     def __init__(self) -> None:
         """
-        Cache class constructor.
+        This cache class constructor.
 
-        Initializes a Redis client and flushes the Redis database.
+        This initializes a Redis client and flushes the Redis database.
         """
         self._redis = redis.Redis()
         self._redis.flushdb()
 
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
-        Store data in Redis and return the generated key.
+        This store data in Redis and return the generated key.
 
         Args:
             data (Union[str, bytes, int, float]): The data to be stored.
@@ -37,22 +38,22 @@ class Cache:
         self._redis.set(key, data)
         return key
 
-# Example Usage:
+"""# Example Usage: """
 if __name__ == "__main__":
     cache_instance = Cache()
 
-    # Store a string
+    """# Store a string """
     string_key = cache_instance.store("Hello, World!")
     print(f"String Key: {string_key}")
 
-    # Store an integer
+    """# Store an integer """
     int_key = cache_instance.store(42)
     print(f"Integer Key: {int_key}")
 
-    # Store a float
+    """# Store a float """
     float_key = cache_instance.store(3.14)
     print(f"Float Key: {float_key}")
 
-    # Store bytes
+    """# Store bytes """
     bytes_key = cache_instance.store(b"Binary Data")
     print(f"Bytes Key: {bytes_key}")
