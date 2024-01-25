@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-
 """
-Caching and tracking module for HTTP requests.
+Caching request module
 """
 import redis
 import requests
@@ -9,52 +8,29 @@ from functools import wraps
 from typing import Callable
 
 
-def cache_and_track_request(fn: Callable) -> Callable:
-    """
-    Decorator for handling HTTP requests with caching and tracking.
-
-    Args:
-        fn (Callable): The function to be decorated.
-
-    Returns:
-        Callable: The decorated function.
+def track_get_page(fn: Callable) -> Callable:
+    """ Decorator for get_page
     """
     @wraps(fn)
     def wrapper(url: str) -> str:
+        """ Wrapper that:
+            - check whether a url's data is cached
+            - tracks how many times get_page is called
         """
-        Wrapper function that:
-        - checks whether a URL's data is cached
-        - tracks the usage count of the decorated function
-
-        Args:
-            url (str): The URL to be accessed.
-
-        Returns:
-            str: The content of the URL.
-        """
-        redis_client = redis.Redis()
-        redis_client.incr(f'usage_count:{url}')
-        cached_data = redis_client.get(f'cached_data:{url}')
-        
-        if cached_data:
-            return cached_data.decode('utf-8')
-
+        client = redis.Redis()
+        client.incr(f'count:{url}')
+        cached_page = client.get(f'{url}')
+        if cached_page:
+            return cached_page.decode('utf-8')
         response = fn(url)
-        redis_client.setex(f'cached_data:{url}', 10, response)
+        client.set(f'{url}', response, 10)
         return response
-
     return wrapper
 
-@cache_and_track_request
-def fetch_url_data(url: str) -> str:
-    """
-    Makes an HTTP request to a given URL.
 
-    Args:
-        url (str): The URL to be accessed.
-
-    Returns:
-        str: The content of the URL.
+@track_get_page
+def get_page(url: str) -> str:
+    """ Makes a http request to a given endpoint
     """
     response = requests.get(url)
     return response.text
