@@ -2,7 +2,8 @@
 """
 Redis client module.
 
-This module defines a Cache class that utilizes a Redis client to store and retrieve data.
+This module defines a Cache class that utilizes
+a Redis client to store and retrieve data.
 """
 
 import redis
@@ -12,7 +13,7 @@ from typing import Any, Callable, Optional, Union
 
 def count_calls(method: Callable) -> Callable:
     """
-    Decorator for Cache class methods to track call count.
+    The decorator for Cache class methods to track call count.
     
     Args:
         method (Callable): The method to be decorated.
@@ -23,7 +24,8 @@ def count_calls(method: Callable) -> Callable:
     @wraps(method)
     def wrapper(self: Any, *args, **kwargs) -> str:
         """
-        Wraps called method and adds its call count to Redis before execution.
+        This wraps called method and adds its call
+        count to Redis before execution.
         
         Args:
             self (Any): The instance of the Cache class.
@@ -39,7 +41,8 @@ def count_calls(method: Callable) -> Callable:
 
 def call_history(method: Callable) -> Callable:
     """
-    Decorator for Cache class method to track arguments and outputs.
+    This decorator for Cache class method to
+    track arguments and outputs.
     
     Args:
         method (Callable): The method to be decorated.
@@ -50,7 +53,8 @@ def call_history(method: Callable) -> Callable:
     @wraps(method)
     def wrapper(self: Any, *args) -> str:
         """
-        Wraps called method and tracks its passed arguments by storing them in Redis.
+        This wraps called method and tracks its passed arguments
+        by storing them in Redis.
         
         Args:
             self (Any): The instance of the Cache class.
@@ -67,7 +71,8 @@ def call_history(method: Callable) -> Callable:
 
 def replay(fn: Callable) -> None:
     """
-    Check Redis for how many times a function was called and display:
+    This check Redis for how many times a function
+    was called and display:
         - How many times it was called
         - Function args and output for each call
         
@@ -89,7 +94,7 @@ class Cache:
     """
     def __init__(self) -> None:
         """
-        Initialize a new cache object.
+        This initialize a new cache object.
         """
         self._redis = redis.Redis()
         self._redis.flushdb()
@@ -98,7 +103,7 @@ class Cache:
     @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
-        Stores data in Redis with a randomly generated key.
+        This stores data in Redis with a randomly generated key.
         
         Args:
             data (Union[str, bytes, int, float]): The data to be stored.
@@ -113,11 +118,13 @@ class Cache:
 
     def get(self, key: str, fn: Optional[Callable] = None) -> Any:
         """
-        Gets key's value from Redis and converts the result byte into the correct data type.
+        Gets key's value from Redis and converts
+        the result byte into the correct data type.
         
         Args:
             key (str): The key under which the data is stored.
-            fn (Optional[Callable]): A callable function to convert the retrieved data.
+            fn (Optional[Callable]): A callable function
+            to convert the retrieved data.
 
         Returns:
             Any: The retrieved data, or None if the key does not exist.
@@ -139,7 +146,7 @@ class Cache:
 
     def get_str(self, data: bytes) -> str:
         """
-        Converts bytes to a string.
+        This converts bytes to a string.
         
         Args:
             data (bytes): The data in bytes.
@@ -151,7 +158,7 @@ class Cache:
 
     def get_int(self, data: bytes) -> int:
         """
-        Converts bytes to integers.
+        This converts bytes to integers.
         
         Args:
             data (bytes): The data in bytes.
