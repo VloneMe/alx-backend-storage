@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+Python script that provides some stats about Nginx logs stored in MongoDB:
+
 Aggregation operations
 """
 from pymongo import MongoClient
@@ -7,11 +9,12 @@ from typing import Tuple, List, Dict
 
 def get_nginx_stats() -> Tuple[int, List[Dict[str, int]], int]:
     """
-    Queries nginx collection for specific data
-    - Returns:
-        - count of all documents
-        - count of each method in the collection
-        - count of each GET calls to /status path
+    Queries nginx collection for specific data.
+
+    Returns a tuple containing:
+        - Total count of all documents in the collection.
+        - Count of each HTTP method in the collection.
+        - Count of each GET calls to the /status path.
     """
     client: MongoClient = MongoClient()
     db = client.logs
@@ -27,7 +30,7 @@ def get_nginx_stats() -> Tuple[int, List[Dict[str, int]], int]:
 
 def print_nginx_stats() -> None:
     """
-    Prints stats from nginx query
+    Prints statistics from the nginx query.
     """
     doc_count, method_stats, status_path_stats = get_nginx_stats()
     print(f'{doc_count} logs')
