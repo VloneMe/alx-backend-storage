@@ -1,44 +1,34 @@
 #!/usr/bin/env python3
 """
-Module: log_statistics
+Module: nginx_logs_info
 
-This module provides a function to retrieve and print statistics from a MongoDB collection of nginx logs.
+This module provides a function to print information about the nginx logs collection.
 """
 
 from pymongo import MongoClient
 
-def log_stats():
+def print_nginx_logs_info():
     """
-    Retrieve and print statistics from the nginx logs collection.
+    Print information about the nginx logs collection.
     """
     # Connect to MongoDB
     client = MongoClient('mongodb://127.0.0.1:27017')
     
-    # Access the logs collection
-    logs_collection = client.logs.nginx
+    # Access the nginx logs collection
+    collection = client.logs.nginx
     
-    # Count total logs
-    total = logs_collection.count_documents({})
+    # Print total number of documents in the collection
+    print(f"{collection.estimated_document_count()} logs")
     
-    # Count logs by HTTP methods
-    get = logs_collection.count_documents({"method": "GET"})
-    post = logs_collection.count_documents({"method": "POST"})
-    put = logs_collection.count_documents({"method": "PUT"})
-    patch = logs_collection.count_documents({"method": "PATCH"})
-    delete = logs_collection.count_documents({"method": "DELETE"})
-    
-    # Count status check logs
-    path = logs_collection.count_documents({"method": "GET", "path": "/status"})
-    
-    # Print statistics
-    print(f"{total} logs")
+    # Print counts for each HTTP method
     print("Methods:")
-    print(f"\tGET: {get}")
-    print(f"\tPOST: {post}")
-    print(f"\tPUT: {put}")
-    print(f"\tPATCH: {patch}")
-    print(f"\tDELETE: {delete}")
-    print(f"{path} status check")
+    for method in ["GET", "POST", "PUT", "PATCH", "DELETE"]:
+        method_count = collection.count_documents({'method': method})
+        print(f"\t{method}: {method_count}")
+    
+    # Count and print status check logs
+    check_get = collection.count_documents({'method': 'GET', 'path': "/status"})
+    print(f"{check_get} status check")
 
 if __name__ == "__main__":
-    log_stats()
+    print_nginx_logs_info()
