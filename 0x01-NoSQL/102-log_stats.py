@@ -1,46 +1,59 @@
 #!/usr/bin/env python3
 """
-Module: collection_info
-
-This module provides a function to print information about a MongoDB collection.
+Aggregation operations
 """
-
 from pymongo import MongoClient
+from collections import OrderedDict
+from typing import Tuple, List, Dict
 
-def print_collection_info():
+
+def get_nginx_stats() -> Tuple[int, List[Dict[str, int]], int, List[Dict[str, int]]]:
     """
-    Print information about the nginx logs collection.
+    Queries nginx collection for specific data
+    - Returns:
+        - count of all documents
+        - count of each method in the collection
+        - count of each GET calls to /status path
+        - count of top 10 visited IPs
     """
-    # Connect to MongoDB
-    client = MongoClient('mongodb://127.0.0.1:27017')
+    client: MongoClient = MongoClient()
+    db = client.logs
+    collection = db.nginx
+    methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
     
-    # Access the logs collection
-    collection = client.logs.nginx
+    method_stats = [{'method': method, 'count': collection.count_documents({'method': method})} for method in methods]
+    doc_count = collection.estimated_document_count()
+    status_path_stats = collection.count_documents({'method': 'GET', 'path': '/status'})
     
-    # Print total number of documents in the collection
-    print(f"{collection.estimated_document_count()} logs")
+    pipeline = [
+        {'$group': {'_id': '$ip', 'count': {'$sum': 1}}},
+        {'$sort': OrderedDict([('count', -1)])},
+        {'$limit': 10}
+    ]
+    top_ips = list(collection.aggregate(pipeline))
     
-    # Print counts for each HTTP method
-    print("Methods:")
-    for method in ["GET", "POST", "PUT", "PATCH", "DELETE"]:
-        method_count = collection.count_documents({'method': method})
-        print(f"\t{method}: {method_count}")
+    client.close()
+    return doc_count, method_stats, status_path_stats, top_ips
+
+
+def print_nginx_stats() -> None:
+    """
+    Prints stats from nginx query
+    """
+    doc_count, method_stats, status_path_stats, top_ips = get_nginx_stats()
     
-    # Count and print status check logs
-    check_get = collection.count_documents({'method': 'GET', 'path': "/status"})
-    print(f"{check_get} status check")
+    print(f'{doc_count} logs')
     
-    # Print top 10 IPs
-    print("IPs:")
-    top_ips = collection.aggregate([
-        {"$group": {"_id": "$ip", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}},
-        {"$limit": 10},
-        {"$project": {"_id": 0, "ip": "$_id", "count": 1}}
-    ])
+    print('Methods:')
+    for method in method_stats:
+        print(f'\tmethod {method["method"]}: {method["count"]}')
     
+    print(f'{status_path_stats} status check')
+    
+    print('IPs:')
     for ip in top_ips:
-        print(f"\t{ip.get('ip')}: {ip.get('count')}")
+        print(f'\t{ip["_id"]}: {ip["count"]}')
 
-if __name__ == "__main__":
-    print_collection_info()
+
+if __name__ == '__main__':
+    print_nginx_stats()
